@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LOL阵容随机分配器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #6e45e2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #fff;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            padding: 30px 20px;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 0 0 20px rgba(255,255,255,0.3);
+            background: linear-gradient(90deg, #ffd700, #ffed4e, #ffd700);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        header p {
+            opacity: 0.8;
+            font-size: 1.1rem;
+        }
+
+        .timer-box {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 15px 25px;
+            margin: 20px auto;
+            max-width: 400px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .timer-label {
+            font-size: 0.9rem;
+            opacity: 0.8;
+            margin-bottom: 5px;
+        }
+
+        .timer-display {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #ffd700;
+            font-family: 'Courier New', monospace;
+            text-shadow: 0 0 10px rgba(255,215,0,0.5);
+        }
+
+        .assignments-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 30px 0;
+        }
+
+        .assignment-card {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            border: 1px solid rgba(255,255,255,0.2);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .assignment-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #ffd700, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4);
+        }
+
+        .assignment-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .role-name {
+            font-size: 0.9rem;
+            opacity: 0.7;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .player-name {
+            font-size: 1.4rem;
+            font-weight: bold;
+            color: #ffd700;
+            text-shadow: 0 0 10px rgba(255,215,0,0.3);
+        }
+
+        .password-section {
+            background: rgba(0,0,0,0.2);
+            border-radius: 15px;
+            padding: 25px;
+            margin: 30px 0;
+            text-align: center;
+        }
+
+        .password-section h3 {
+            margin-bottom: 15px;
+            color: #ffd700;
+        }
+
+        .password-input-group {
+            display: flex;
+            gap: 10px;
+            max-width: 300px;
+            margin: 0 auto;
+        }
+
+        .password-input-group input {
+            flex: 1;
+            padding: 12px 15px;
+            border: 2px solid rgba(255,255,255,0.2);
+            border-radius: 10px;
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+            font-size: 1rem;
+        }
+
+        .password-input-group input::placeholder {
+            color: rgba(255,255,255,0.5);
+        }
+
+        .password-input-group input:focus {
+            outline: none;
+            border-color: #ffd700;
+        }
+
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-gold {
+            background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+            color: #333;
+        }
+
+        .btn-gold:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 20px rgba(255, 215, 0, 0.4);
+        }
+
+        .hidden-btn {
+            display: none;
+            margin-top: 20px;
+        }
+
+        .hidden-btn.visible {
+            display: inline-block;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .success-msg {
+            color: #4ade80;
+            margin-top: 10px;
+            font-size: 0.9rem;
+        }
+
+        .error-msg {
+            color: #f87171;
+            margin-top: 10px;
+            font-size: 0.9rem;
+        }
+
+        footer {
+            text-align: center;
+            padding: 30px;
+            opacity: 0.6;
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 600px) {
+            header h1 {
+                font-size: 1.8rem;
+            }
+
+            .assignments-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .password-input-group {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎮 LOL阵容随机分配器</h1>
+            <p>公平分配，快乐开黑！</p>
+        </header>
+
+        <!-- 倒计时 -->
+        <div class="timer-box">
+            <div class="timer-label">⏰ 下次自动分配倒计时</div>
+            <div class="timer-display" id="timerDisplay">05:00</div>
+        </div>
+
+        <!-- 分配结果显示区 -->
+        <div class="assignments-grid" id="assignmentsGrid">
+            <!-- 动态生成 -->
+        </div>
+
+        <!-- 密码区 -->
+        <div class="password-section">
+            <h3>🔐 管理员密码验证</h3>
+            <p style="opacity: 0.7; margin-bottom: 15px; font-size: 0.9rem;">输入正确密码可解锁手动重新分配功能</p>
+
+            <div class="password-input-group">
+                <input type="password" id="passwordInput" placeholder="请输入密码">
+                <button class="btn btn-primary" onclick="verifyPassword()">验证</button>
+            </div>
+
+            <div id="passwordMessage"></div>
+
+            <button class="btn btn-gold hidden-btn" id="reassignBtn" onclick="manualReassign()">
+                🎲 立即重新分配
+            </button>
+        </div>
+
+        <footer>
+            <p>LOL阵容随机分配器 © 2024 | 让游戏更公平</p>
+        </footer>
+    </div>
+
+    <script>
+        // 配置
+        const PLAYERS = ['刚哥', '小茹', '毛裤', 'zoe', '超超'];
+        const ROLES = ['打野', '上单', '中路', '游走', 'AD'];
+        const CORRECT_PASSWORD = '520zoe';
+        const AUTO_ASSIGN_INTERVAL = 5 * 60 * 1000; // 5分钟
+
+        // 状态
+        let currentAssignment = {};
+        let nextAssignTime = Date.now() + AUTO_ASSIGN_INTERVAL;
+        let timerInterval;
+
+        // 初始化
+        window.onload = function() {
+            loadAssignment();
+            startTimer();
+        };
+
+        // 加载或生成分配
+        function loadAssignment() {
+            const saved = localStorage.getItem('lolAssignment');
+            const savedTime = localStorage.getItem('lolNextAssignTime');
+
+            if (saved && savedTime) {
+                currentAssignment = JSON.parse(saved);
+                nextAssignTime = parseInt(savedTime);
+
+                // 检查是否需要重新分配
+                if (Date.now() >= nextAssignTime) {
+                    generateNewAssignment();
+                }
+            } else {
+                generateNewAssignment();
+            }
+
+            displayAssignment();
+        }
+
+        // 生成新分配
+        function generateNewAssignment() {
+            // 洗牌算法
+            const shuffled = [...PLAYERS];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+
+            // 分配到位置
+            currentAssignment = {};
+            ROLES.forEach((role, index) => {
+                currentAssignment[role] = shuffled[index];
+            });
+
+            // 保存
+            nextAssignTime = Date.now() + AUTO_ASSIGN_INTERVAL;
+            localStorage.setItem('lolAssignment', JSON.stringify(currentAssignment));
+            localStorage.setItem('lolNextAssignTime', nextAssignTime.toString());
+
+            displayAssignment();
+        }
+
+        // 显示分配结果
+        function displayAssignment() {
+            const grid = document.getElementById('assignmentsGrid');
+            grid.innerHTML = '';
+
+            ROLES.forEach(role => {
+                const player = currentAssignment[role];
+                const card = document.createElement('div');
+                card.className = 'assignment-card';
+                card.innerHTML = `
+                    <div class="role-name">${role}</div>
+                    <div class="player-name">${player || '?'}</div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        // 倒计时
+        function startTimer() {
+            updateTimer();
+            timerInterval = setInterval(updateTimer, 1000);
+        }
+
+        function updateTimer() {
+            const now = Date.now();
+            const remaining = Math.max(0, nextAssignTime - now);
+
+            const minutes = Math.floor(remaining / 60000);
+            const seconds = Math.floor((remaining % 60000) / 1000);
+
+            document.getElementById('timerDisplay').textContent =
+                `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+
+            if (remaining === 0) {
+                generateNewAssignment();
+                nextAssignTime = Date.now() + AUTO_ASSIGN_INTERVAL;
+            }
+        }
+
+        // 密码验证
+        function verifyPassword() {
+            const input = document.getElementById('passwordInput').value;
+            const msgDiv = document.getElementById('passwordMessage');
+            const btn = document.getElementById('reassignBtn');
+
+            if (input === CORRECT_PASSWORD) {
+                msgDiv.innerHTML = '<div class="success-msg">✅ 密码正确！已解锁手动分配功能</div>';
+                btn.classList.add('visible');
+                document.getElementById('passwordInput').value = '';
+            } else {
+                msgDiv.innerHTML = '<div class="error-msg">❌ 密码错误，请重试</div>';
+                btn.classList.remove('visible');
+            }
+
+            setTimeout(() => {
+                msgDiv.innerHTML = '';
+            }, 3000);
+        }
+
+        // 手动重新分配
+        function manualReassign() {
+            if (confirm('确定要立即重新分配阵容吗？')) {
+                generateNewAssignment();
+                nextAssignTime = Date.now() + AUTO_ASSIGN_INTERVAL;
+                localStorage.setItem('lolNextAssignTime', nextAssignTime.toString());
+
+                // 显示成功提示
+                const btn = document.getElementById('reassignBtn');
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '✅ 已重新分配！';
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                }, 2000);
+            }
+        }
+
+        // 回车键提交密码
+        document.getElementById('passwordInput')?.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                verifyPassword();
+            }
+        });
+    </script>
+</body>
+</html>
