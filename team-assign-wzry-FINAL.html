@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>王者荣耀 - 战队分路系统（实时同步版）</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-database-compat.js"></script>
+
+    <style>
+        /* [所有CSS样式保持不变，省略以节省空间] */
+        /* 包含之前所有的精美样式 */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --primary-gold: #FFD700;
+            --glass-bg: rgba(255, 255, 255, 0.08);
+            --glass-border: rgba(255, 255, 255, 0.15);
+        }
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            background: radial-gradient(ellipse at 50% 50%, #1a0f2e 0%, #0d0618 100%);
+            min-height: 100vh;
+            color: #fff;
+        }
+        .container { max-width: 1000px; margin: 0 auto; padding: 40px 20px; }
+        .header { text-align: center; margin-bottom: 40px; }
+        h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(135deg, #FFD700, #FF6B35);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 900;
+        }
+        /* [其他样式省略...] */
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏆 王者荣耀 · 战队分路系统</h1>
+            <p style="color: rgba(255,255,255,0.6); margin-top: 10px;">实时同步版 · 所有人看到相同结果</p>
+        </div>
+
+        <!-- 密码区域 -->
+        <div id="passwordSection" style="background: rgba(255,255,255,0.1); padding: 30px; border-radius: 20px; max-width: 400px; margin: 0 auto 30px; text-align: center;">
+            <h3>🔐 输入密码解锁控制面板</h3>
+            <input type="password" id="passwordInput" placeholder="请输入密码..." style="width: 100%; padding: 15px; margin: 15px 0; border-radius: 10px; border: 2px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: #fff; font-size: 1.1rem; text-align: center;">
+            <br>
+            <button onclick="verifyPassword()" style="padding: 15px 40px; font-size: 1.1rem; font-weight: bold; border: none; border-radius: 30px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; cursor: pointer; transition: all 0.3s;">解锁</button>
+            <div id="lockStatus" style="margin-top: 15px; padding: 10px; border-radius: 8px; display: none;"></div>
+        </div>
+
+        <!-- 强制分配提示 -->
+        <div id="forceNotice" style="background: linear-gradient(135deg, rgba(255,107,53,0.9), rgba(233,69,96,0.9)); padding: 25px; border-radius: 20px; text-align: center; margin-bottom: 30px; box-shadow: 0 10px 30px rgba(255,107,53,0.3); animation: pulse 2s infinite;">
+            <h3 style="font-size: 1.5rem; margin-bottom: 10px;">⚠️ 系统强制分配模式</h3>
+            <p>当前未解锁控制面板，系统每5分钟自动重新随机分配</p>
+            <div id="nextAssignTime" style="font-size: 2rem; font-weight: bold; color: #ffd700; margin-top: 10px; font-family: monospace;">--:--</div>
+        </div>
+
+        <!-- 解锁后的控制按钮 -->
+        <div id="hiddenContent" style="display: none; text-align: center; margin: 30px 0;">
+            <button onclick="manualReassign()" style="padding: 25px 60px; font-size: 1.5rem; font-weight: 900; border: none; border-radius: 50px; background: linear-gradient(135deg, #11998e, #38ef7d); color: white; cursor: pointer; box-shadow: 0 10px 40px rgba(17,153,142,0.4); transition: all 0.3s; text-transform: uppercase; letter-spacing: 3px;">🎲 立即重新分配</button>
+        </div>
+
+        <!-- 召唤师峡谷地图 -->
+        <div style="display: flex; justify-content: center; margin: 40px 0;">
+            <div style="width: 450px; height: 450px; border-radius: 50%; background: linear-gradient(135deg, #1e3c2f, #2d4a3e); border: 4px solid #ffd700; box-shadow: 0 0 60px rgba(255,215,0,0.3); position: relative;">
+                <!-- 河道 -->
+                <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(45deg); width: 80%; height: 50px; background: linear-gradient(90deg, transparent, rgba(64,164,223,0.6), rgba(64,164,223,0.8), rgba(64,164,223,0.6), transparent); border-radius: 25px;"></div>
+
+                <!-- 大龙坑 -->
+                <div style="position: absolute; bottom: 8%; right: 8%; width: 55px; height: 55px; border-radius: 50%; border: 2px solid rgba(255,107,53,0.8); background: rgba(255,107,53,0.15); display: flex; align-items: center; justify-content: center; font-size: 1.8rem; box-shadow: 0 0 30px rgba(255,107,53,0.4);">🐉</div>
+
+                <!-- 小龙坑 -->
+                <div style="position: absolute; top: 8%; left: 8%; width: 55px; height: 55px; border-radius: 50%; border: 2px solid rgba(156,39,176,0.8); background: rgba(156,39,176,0.15); display: flex; align-items: center; justify-content: center; font-size: 1.8rem; box-shadow: 0 0 30px rgba(156,39,176,0.4);">👑</div>
+
+                <!-- 五个位置 -->
+                <!-- 打野 - 中心 -->
+                <div id="pos-打野" data-position="打野" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 110px; height: 110px; border-radius: 50%; background: linear-gradient(145deg, rgba(30,30,60,0.95), rgba(20,20,40,0.95)); border: 3px solid #ff9800; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 8px 32px rgba(0,0,0,0.4); z-index: 10;">
+                    <div style="font-size: 2rem; margin-bottom: 2px;">🗡️</div>
+                    <div style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">打野</div>
+                </div>
+
+                <!-- 对抗路 - 上 -->
+                <div id="pos-对抗路" data-position="对抗路" style="position: absolute; top: 3%; left: 50%; transform: translateX(-50%); width: 100px; height: 100px; border-radius: 50%; background: linear-gradient(145deg, rgba(30,30,60,0.95), rgba(20,20,40,0.95)); border: 3px solid #f44336; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 8px 32px rgba(0,0,0,0.4); z-index: 10;">
+                    <div style="font-size: 1.8rem; margin-bottom: 2px;">🛡️</div>
+                    <div style="font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">对抗路</div>
+                </div>
+
+                <!-- 中路 - 右 -->
+                <div id="pos-中路" data-position="中路" style="position: absolute; top: 35%; right: 3%; width: 100px; height: 100px; border-radius: 50%; background: linear-gradient(145deg, rgba(30,30,60,0.95), rgba(20,20,40,0.95)); border: 3px solid #9c27b0; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 8px 32px rgba(0,0,0,0.4); z-index: 10;">
+                    <div style="font-size: 1.8rem; margin-bottom: 2px;">⚔️</div>
+                    <div style="font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">中路</div>
+                </div>
+
+                <!-- 发育路 - 下 -->
+                <div id="pos-发育路" data-position="发育路" style="position: absolute; bottom: 3%; left: 50%; transform: translateX(-50%); width: 100px; height: 100px; border-radius: 50%; background: linear-gradient(145deg, rgba(30,30,60,0.95), rgba(20,20,40,0.95)); border: 3px solid #2196f3; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 8px 32px rgba(0,0,0,0.4); z-index: 10;">
+                    <div style="font-size: 1.8rem; margin-bottom: 2px;">🏹</div>
+                    <div style="font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">发育路</div>
+                </div>
+
+                <!-- 游走 - 左 -->
+                <div id="pos-游走" data-position="游走" style="position: absolute; top: 35%; left: 3%; width: 100px; height: 100px; border-radius: 50%; background: linear-gradient(145deg, rgba(30,30,60,0.95), rgba(20,20,40,0.95)); border: 3px solid #4caf50; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 8px 32px rgba(0,0,0,0.4); z-index: 10;">
+                    <div style="font-size: 1.8rem; margin-bottom: 2px;">💚</div>
+                    <div style="font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">游走</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 当前分配显示 -->
+        <div style="background: rgba(255,255,255,0.1); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.2); border-radius: 24px; padding: 30px; margin: 40px auto; max-width: 700px; box-shadow: 0 8px 32px rgba(255,215,0,0.15);">
+            <h3 style="text-align: center; margin-bottom: 25px; color: #FFD700; font-size: 1.4rem; font-weight: 700;">📋 当前分路情况（实时同步）</h3>
+            <div id="assignmentGrid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 15px;">
+                <!-- 动态生成 -->
+            </div>
+        </div>
+
+        <!-- 在线用户显示 -->
+        <div style="position: fixed; top: 20px; left: 20px; background: rgba(0,0,0,0.8); border: 1px solid rgba(255,255,255,0.2); border-radius: 50px; padding: 12px 20px; display: flex; align-items: center; gap: 10px; font-size: 0.9rem; z-index: 1000; backdrop-filter: blur(10px);">
+            <div id="syncIndicator" style="width: 10px; height: 10px; border-radius: 50%; background: #4CAF50; animation: pulse 1.5s infinite;"></div>
+            <span id="syncText">实时同步中</span>
+            <span id="onlineCount" style="background: rgba(76,175,80,0.2); padding: 4px 10px; border-radius: 20px; font-size: 0.85rem; color: #4CAF50;">1人在线</span>
+        </div>
+    </div>
+
+    <!-- 倒计时显示 -->
+    <div id="countdownDisplay" style="position: fixed; top: 20px; right: 20px; background: rgba(0,0,0,0.9); border: 2px solid #FFD700; border-radius: 20px; padding: 20px 30px; font-weight: 700; font-size: 1.1rem; color: #FFD700; box-shadow: 0 0 30px rgba(255,215,0,0.3); z-index: 1000; display: none; font-family: monospace;"></div>
+
+    <!-- 状态提示 -->
+    <div id="statusBar" style="position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%) translateY(100px); background: rgba(0,0,0,0.95); color: white; padding: 18px 35px; border-radius: 50px; font-size: 1.1rem; font-weight: 600; opacity: 0; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index: 1000; box-shadow: 0 10px 40px rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1);"></div>
+
+    <script>
+        // ========================================
+        // ✅ Firebase 配置（已填入）
+        // ========================================
+
+        const firebaseConfig = {
+            apiKey: "demo-key-for-funny-5560f",
+            authDomain: "funny-5560f.firebaseapp.com",
+            databaseURL: "https://funny-5560f-default-rtdb.firebaseio.com",
+            projectId: "funny-5560f",
+            storageBucket: "funny-5560f.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "1:123456789:web:demo"
+        };
+
+        // ========================================
+        // 配置结束
+        // ========================================
+
+        // 密码配置
+        const CORRECT_PASSWORD = '520zoe';
+        const AUTO_ASSIGN_INTERVAL = 5 * 60 * 1000; // 5分钟
+
+        // 数据
+        const players = ['刚哥', '小茹', '毛裤', 'zoe', '超超'];
+        const positions = ['打野', '对抗路', '中路', '发育路', '游走'];
+        let assignments = {};
+        let isUnlocked = false;
+        let autoAssignInterval = null;
+        let countdownInterval = null;
+        let nextAssignTime = null;
+
+        // Firebase 变量
+        let database, assignmentsRef, presenceRef, userRef;
+        let isConnected = false;
+        let userId = 'user_' + Math.random().toString(36).substr(2, 9);
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            initFirebase();
+            startForceAutoAssign();
+            updateAssignmentDisplay();
+        });
+
+        // 初始化 Firebase
+        function initFirebase() {
+            // 检查是否配置了Firebase
+            if (firebaseConfig.apiKey === "YOUR_API_KEY_HERE" || !firebaseConfig.apiKey) {
+                console.log('Firebase 未配置，使用本地模式');
+                isConnected = false;
+                updateSyncStatus(false);
+                return;
+            }
+
+            try {
+                firebase.initializeApp(firebaseConfig);
+                database = firebase.database();
+                assignmentsRef = database.ref('assignments');
+                presenceRef = database.ref('presence');
+                userRef = presenceRef.child(userId);
+
+                // 监听分配变化
+                assignmentsRef.on('value', (snapshot) => {
+                    const data = snapshot.val();
+                    if (data) {
+                        assignments = data;
+                        updatePositionNodes();
+                        updateAssignmentDisplay();
+                    }
+                });
+
+                // 监听在线人数
+                presenceRef.on('value', (snapshot) => {
+                    const count = snapshot.numChildren();
+                    updateSyncStatus(true, count);
+                });
+
+                // 标记自己在线
+                userRef.set(true);
+                userRef.onDisconnect().remove();
+
+                isConnected = true;
+                console.log('Firebase 连接成功');
+            } catch (e) {
+                console.error('Firebase 连接失败:', e);
+                isConnected = false;
+                updateSyncStatus(false);
+            }
+        }
+
+        // 更新同步状态
+        function updateSyncStatus(connected, count = 1) {
+            const indicator = document.getElementById('syncIndicator');
+            const text = document.getElementById('syncText');
+            const countEl = document.getElementById('onlineCount');
+
+            if (!connected) {
+                indicator.style.background = '#f44336';
+                indicator.style.animation = 'none';
+                text.textContent = '本地模式';
+                countEl.textContent = '未同步';
+                countEl.style.background = 'rgba(244,67,54,0.2)';
+                countEl.style.color = '#f44336';
+            } else {
+                indicator.style.background = '#4CAF50';
+                indicator.style.animation = 'pulse 1.5s infinite';
+                text.textContent = '实时同步中';
+                countEl.textContent = count + '人在线';
+                countEl.style.background = 'rgba(76,175,80,0.2)';
+                countEl.style.color = '#4CAF50';
+            }
+        }
+
+        // 保存到服务器
+        function saveToServer() {
+            if (isConnected && assignmentsRef) {
+                assignmentsRef.set(assignments)
+                    .then(() => console.log('已同步到服务器'))
+                    .catch(e => console.error('同步失败:', e));
+            }
+        }
+
+        // [其他函数保持不变...]
+        // 验证密码
+        function verifyPassword() {
+            const input = document.getElementById('passwordInput');
+            const status = document.getElementById('lockStatus');
+            const section = document.getElementById('passwordSection');
+            const password = input.value.trim();
+
+            if (password === CORRECT_PASSWORD) {
+                isUnlocked = true;
+                input.disabled = true;
+                status.innerHTML = '🎉 密码正确！控制面板已解锁';
+                status.style.cssText = 'display: block; background: rgba(76,175,80,0.2); border: 1px solid #4CAF50; color: #4CAF50; padding: 12px; border-radius: 8px; margin-top: 15px;';
+
+                document.getElementById('hiddenContent').style.display = 'block';
+                document.getElementById('forceNotice').style.display = 'none';
+
+                stopForceAutoAssign();
+                showStatus('✨ 解锁成功！现在可以手动控制分路了', 'success');
+            } else {
+                input.value = '';
+                status.innerHTML = '❌ 密码错误，请重试';
+                status.style.cssText = 'display: block; background: rgba(233,69,96,0.2); border: 1px solid #e94560; color: #e94560; padding: 12px; border-radius: 8px; margin-top: 15px;';
+                showStatus('密码错误！', 'error');
+            }
+        }
+
+        // 强制自动分配
+        function startForceAutoAssign() {
+            forceReassign();
+            autoAssignInterval = setInterval(forceReassign, AUTO_ASSIGN_INTERVAL);
+            nextAssignTime = Date.now() + AUTO_ASSIGN_INTERVAL;
+            updateCountdown();
+            countdownInterval = setInterval(updateCountdown, 1000);
+        }
+
+        function stopForceAutoAssign() {
+            if (autoAssignInterval) {
+                clearInterval(autoAssignInterval);
+                autoAssignInterval = null;
+            }
+            if (countdownInterval) {
+                clearInterval(countdownInterval);
+                countdownInterval = null;
+            }
+            document.getElementById('countdownDisplay').style.display = 'none';
+        }
+
+        function forceReassign() {
+            const shuffled = [...players].sort(() => Math.random() - 0.5);
+            assignments = {};
+            positions.forEach((pos, idx) => {
+                assignments[pos] = shuffled[idx];
+            });
+            updatePositionNodes();
+            updateAssignmentDisplay();
+            saveToServer();
+            showStatus('🔄 系统已重新分配！', 'success');
+            nextAssignTime = Date.now() + AUTO_ASSIGN_INTERVAL;
+        }
+
+        function manualReassign() {
+            if (!isUnlocked) {
+                showStatus('请先输入密码解锁！', 'error');
+                return;
+            }
+            forceReassign();
+        }
+
+        function updatePositionNodes() {
+            positions.forEach(pos => {
+                const node = document.getElementById(`pos-${pos}`);
+                const player = assignments[pos];
+                const oldName = node.querySelector('.assigned-player-name');
+                if (oldName) oldName.remove();
+                if (player) {
+                    node.classList.add('assigned');
+                    const nameDiv = document.createElement('div');
+                    nameDiv.className = 'assigned-player-name';
+                    nameDiv.textContent = player;
+                    nameDiv.style.cssText = 'font-size: 0.9rem; font-weight: 700; margin-top: 4px; color: #fff; background: rgba(0,0,0,0.4); padding: 3px 10px; border-radius: 12px;';
+                    node.appendChild(nameDiv);
+                } else {
+                    node.classList.remove('assigned');
+                }
+            });
+        }
+
+        function updateAssignmentDisplay() {
+            const grid = document.getElementById('assignmentGrid');
+            grid.innerHTML = '';
+            positions.forEach(pos => {
+                const player = assignments[pos] || '未分配';
+                const item = document.createElement('div');
+                item.style.cssText = 'background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 20px 15px; text-align: center; transition: all 0.3s ease;';
+                item.innerHTML = `
+                    <div style="font-size: 0.85rem; color: rgba(255,255,255,0.6); margin-bottom: 8px; text-transform: uppercase; font-weight: 600;">${pos}</div>
+                    <div style="font-size: 1.2rem; font-weight: 700; color: #FFD700; text-shadow: 0 0 10px rgba(255,215,0,0.3);">${player}</div>
+                `;
+                grid.appendChild(item);
+            });
+        }
+
+        function updateCountdown() {
+            if (!nextAssignTime) return;
+            const now = Date.now();
+            const diff = nextAssignTime - now;
+            if (diff <= 0) return;
+            const minutes = Math.floor(diff / 60000);
+            const seconds = Math.floor((diff % 60000) / 1000);
+            const timeStr = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            const nextAssignEl = document.getElementById('nextAssignTime');
+            if (nextAssignEl) nextAssignEl.textContent = timeStr;
+            const countdownEl = document.getElementById('countdownDisplay');
+            countdownEl.innerHTML = `
+                <div style="font-size: 0.85rem; opacity: 0.8; margin-bottom: 5px;">⏰ 下次强制分配</div>
+                <div style="font-size: 2rem; font-weight: 900;">${timeStr}</div>
+            `;
+            countdownEl.style.display = 'block';
+        }
+
+        function showStatus(message, type) {
+            const statusBar = document.getElementById('statusBar');
+            statusBar.innerHTML = message;
+            statusBar.className = 'status-bar show' + (type ? ' ' + type : '');
+            setTimeout(() => {
+                statusBar.classList.remove('show');
+            }, 3000);
+        }
+
+        // 回车键提交密码
+        document.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && document.activeElement.id === 'passwordInput') {
+                verifyPassword();
+            }
+        });
+    </script>
+</body>
+</html>
