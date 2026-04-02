@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>随机数生成器 - 多功能随机工具</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            padding: 40px 20px;
+            color: white;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .tools-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 25px;
+            padding: 20px 0;
+        }
+
+        .tool-card {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .tool-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 25px 50px rgba(0,0,0,0.15);
+        }
+
+        .tool-card h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.4rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .icon {
+            font-size: 1.5rem;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-size: 0.9rem;
+        }
+
+        .input-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        input[type="number"],
+        input[type="text"],
+        textarea,
+        select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+            font-family: inherit;
+        }
+
+        input[type="number"]:focus,
+        input[type="text"]:focus,
+        textarea:focus,
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 10px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            font-weight: 600;
+        }
+
+        .btn:hover {
+            transform: scale(1.02);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+            box-shadow: none;
+        }
+
+        .result {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            text-align: center;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .result-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #667eea;
+            font-family: 'Courier New', monospace;
+        }
+
+        .result-list {
+            font-size: 1.2rem;
+            color: #333;
+            word-break: break-all;
+        }
+
+        .color-preview {
+            width: 80px;
+            height: 80px;
+            border-radius: 10px;
+            margin: 10px auto;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        .coin-container {
+            width: 100px;
+            height: 100px;
+            margin: 0 auto;
+            position: relative;
+            transform-style: preserve-3d;
+        }
+
+        .coin {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            position: absolute;
+            backface-visibility: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            font-weight: bold;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+
+        .coin-heads {
+            background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+            color: #b8860b;
+        }
+
+        .coin-tails {
+            background: linear-gradient(135deg, #c0c0c0 0%, #e8e8e8 100%);
+            color: #666;
+            transform: rotateY(180deg);
+        }
+
+        .coin-container.flipping {
+            animation: flip 1s ease-in-out;
+        }
+
+        @keyframes flip {
+            0% { transform: rotateY(0); }
+            100% { transform: rotateY(1800deg); }
+        }
+
+        .dice-container {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin: 15px 0;
+        }
+
+        .dice {
+            width: 60px;
+            height: 60px;
+            background: white;
+            border-radius: 12px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            padding: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+
+        .dice-dot {
+            width: 10px;
+            height: 10px;
+            background: #333;
+            border-radius: 50%;
+            place-self: center;
+        }
+
+        .dice.rolling {
+            animation: roll 0.5s ease-in-out;
+        }
+
+        @keyframes roll {
+            0%, 100% { transform: rotate(0); }
+            25% { transform: rotate(90deg); }
+            50% { transform: rotate(180deg); }
+            75% { transform: rotate(270deg); }
+        }
+
+        .checkbox-group {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin: 10px 0;
+        }
+
+        .checkbox-group label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: auto;
+        }
+
+        .history-list {
+            max-height: 150px;
+            overflow-y: auto;
+            text-align: left;
+            font-size: 0.9rem;
+        }
+
+        .history-item {
+            padding: 5px 10px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .history-item:last-child {
+            border-bottom: none;
+        }
+
+        .copy-btn {
+            padding: 2px 8px;
+            font-size: 0.75rem;
+            background: #e0e0e0;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .copy-btn:hover {
+            background: #d0d0d0;
+        }
+
+        footer {
+            text-align: center;
+            padding: 40px 20px;
+            color: white;
+            opacity: 0.8;
+        }
+
+        @media (max-width: 600px) {
+            header h1 {
+                font-size: 1.8rem;
+            }
+
+            .tools-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .tool-card {
+                padding: 20px;
+            }
+
+            .input-row {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎲 随机数生成器</h1>
+            <p>多功能随机工具箱 - 满足你的各种随机需求</p>
+        </header>
+
+        <div class="tools-grid">
+            <!-- 随机数生成器 -->
+            <div class="tool-card">
+                <h2><span class="icon">🔢</span>随机数生成器</h2>
+                <div class="input-group">
+                    <label>范围</label>
+                    <div class="input-row">
+                        <input type="number" id="numMin" placeholder="最小值" value="1">
+                        <input type="number" id="numMax" placeholder="最大值" value="100">
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label>生成数量</label>
+                    <input type="number" id="numCount" value="1" min="1" max="100">
+                </div>
+                <div class="input-group">
+                    <div class="checkbox-group">
+                        <label><input type="checkbox" id="noRepeat"> 不重复</label>
+                        <label><input type="checkbox" id="sortResult"> 排序</label>
+                    </div>
+                </div>
+                <button class="btn" onclick="generateRandomNumbers()">生成随机数</button>
+                <div class="result" id="numResult">
+                    <span style="color: #999;">点击按钮生成随机数</span>
+                </div>
+            </div>
+
+            <!-- 随机密码生成器 -->
+            <div class="tool-card">
+                <h2><span class="icon">🔐</span>随机密码生成器</h2>
+                <div class="input-group">
+                    <label>密码长度</label>
+                    <input type="number" id="pwdLength" value="16" min="4" max="128">
+                </div>
+                <div class="input-group">
+                    <label>包含字符</label>
+                    <div class="checkbox-group">
+                        <label><input type="checkbox" id="useUpper" checked> 大写字母</label>
+                        <label><input type="checkbox" id="useLower" checked> 小写字母</label>
+                        <label><input type="checkbox" id="useNumbers" checked> 数字</label>
+                        <label><input type="checkbox" id="useSymbols"> 特殊符号</label>
+                    </div>
+                </div>
+                <button class="btn" onclick="generatePassword()">生成密码</button>
+                <div class="result" id="pwdResult">
+                    <span style="color: #999;">点击按钮生成密码</span>
+                </div>
+            </div>
+
+            <!-- 抛硬币 -->
+            <div class="tool-card">
+                <h2><span class="icon">🪙</span>抛硬币</h2>
+                <div class="coin-container" id="coinContainer">
+                    <div class="coin coin-heads" id="coin">正面</div>
+                </div>
+                <button class="btn" onclick="flipCoin()" style="margin-top: 20px;">抛硬币</button>
+                <div class="result" id="coinResult">
+                    <span style="color: #999;">点击按钮抛硬币</span>
+                </div>
+            </div>
+
+            <!-- 掷骰子 -->
+            <div class="tool-card">
+                <h2><span class="icon">🎲</span>掷骰子</h2>
+                <div class="input-group">
+                    <label>骰子数量</label>
+                    <input type="number" id="diceCount" value="2" min="1" max="10">
+                </div>
+                <div class="dice-container" id="diceContainer">
+                    <!-- 骰子将在这里动态生成 -->
+                </div>
+                <button class="btn" onclick="rollDice()">掷骰子</button>
+                <div class="result" id="diceResult">
+                    <span style="color: #999;">点击按钮掷骰子</span>
+                </div>
+            </div>
+
+            <!-- 随机颜色 -->
+            <div class="tool-card">
+                <h2><span class="icon">🎨</span>随机颜色生成器</h2>
+                <div class="color-preview" id="colorPreview" style="background: #667eea;"></div>
+                <div class="input-group">
+                    <input type="text" id="colorValue" value="#667eea" readonly>
+                </div>
+                <div class="input-group">
+                    <label>RGB: <span id="rgbValue">102, 126, 234</span></label>
+                </div>
+                <button class="btn" onclick="generateRandomColor()">生成随机颜色</button>
+                <button class="btn btn-secondary" onclick="copyColor()" style="margin-left: 10px;">复制色值</button>
+            </div>
+
+            <!-- 从列表中随机选择 -->
+            <div class="tool-card">
+                <h2><span class="icon">📋</span>从列表中随机选择</h2>
+                <div class="input-group">
+                    <label>输入选项（每行一个）</label>
+                    <textarea id="listInput" placeholder="选项1&#10;选项2&#10;选项3&#10;...">选项1
+选项2
+选项3</textarea>
+                </div>
+                <div class="input-group">
+                    <label>选择数量</label>
+                    <input type="number" id="selectCount" value="1" min="1">
+                </div>
+                <div class="input-group">
+                    <label><input type="checkbox" id="removeAfterPick"> 选中后从列表移除</label>
+                </div>
+                <button class="btn" onclick="pickFromList()">随机选择</button>
+                <div class="result" id="listResult">
+                    <span style="color: #999;">点击按钮从列表中选择</span>
+                </div>
+            </div>
+
+            <!-- 历史记录 -->
+            <div class="tool-card">
+                <h2><span class="icon">📜</span>生成历史</h2>
+                <div class="history-list" id="historyList">
+                    <div style="text-align: center; color: #999; padding: 20px;">
+                        暂无历史记录
+                    </div>
+                </div>
+                <button class="btn btn-secondary" onclick="clearHistory()" style="margin-top: 15px; width: 100%;">
+                    清空历史
+                </button>
+            </div>
+        </div>
+
+        <footer>
+            <p>随机数生成器 &copy; 2024 - 让随机变得简单</p>
+        </footer>
+    </div>
+
+    <script>
+        // 历史记录
+        let history = [];
+
+        function addToHistory(type, value) {
+            const timestamp = new Date().toLocaleTimeString('zh-CN');
+            history.unshift({ type, value, timestamp });
+            if (history.length > 20) history.pop();
+            updateHistoryDisplay();
+        }
+
+        function updateHistoryDisplay() {
+            const container = document.getElementById('historyList');
+            if (history.length === 0) {
+                container.innerHTML = '<div style="text-align: center; color: #999; padding: 20px;">暂无历史记录</div>';
+                return;
+            }
+            container.innerHTML = history.map((item, index) => `
+                <div class="history-item">
+                    <span>[${item.timestamp}] ${item.type}: ${item.value}</span>
+                    <button class="copy-btn" onclick="copyText('${item.value.replace(/'/g, "\\'")}')">复制</button>
+                </div>
+            `).join('');
+        }
+
+        function clearHistory() {
+            history = [];
+            updateHistoryDisplay();
+        }
+
+        function copyText(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                alert('已复制: ' + text);
+            });
+        }
+
+        // 随机数生成器
+        function generateRandomNumbers() {
+            const min = parseInt(document.getElementById('numMin').value) || 1;
+            const max = parseInt(document.getElementById('numMax').value) || 100;
+            const count = parseInt(document.getElementById('numCount').value) || 1;
+            const noRepeat = document.getElementById('noRepeat').checked;
+            const sortResult = document.getElementById('sortResult').checked;
+
+            if (min > max) {
+                alert('最小值不能大于最大值');
+                return;
+            }
+
+            if (noRepeat && (max - min + 1) < count) {
+                alert('范围内数字不足，无法生成不重复的随机数');
+                return;
+            }
+
+            let numbers = [];
+            const range = max - min + 1;
+
+            if (noRepeat && count > range / 2) {
+                // 使用洗牌算法
+                let pool = [];
+                for (let i = min; i <= max; i++) pool.push(i);
+                for (let i = pool.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [pool[i], pool[j]] = [pool[j], pool[i]];
+                }
+                numbers = pool.slice(0, count);
+            } else {
+                while (numbers.length < count) {
+                    const num = Math.floor(Math.random() * range) + min;
+                    if (!noRepeat || !numbers.includes(num)) {
+                        numbers.push(num);
+                    }
+                }
+            }
+
+            if (sortResult) numbers.sort((a, b) => a - b);
+
+            const resultText = numbers.join(', ');
+            document.getElementById('numResult').innerHTML = `
+                <div class="result-list">${resultText}</div>
+            `;
+            addToHistory('随机数', resultText);
+        }
+
+        // 随机密码生成器
+        function generatePassword() {
+            const length = parseInt(document.getElementById('pwdLength').value) || 16;
+            const useUpper = document.getElementById('useUpper').checked;
+            const useLower = document.getElementById('useLower').checked;
+            const useNumbers = document.getElementById('useNumbers').checked;
+            const useSymbols = document.getElementById('useSymbols').checked;
+
+            const upperChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+            const lowerChars = 'abcdefghijklmnopqrstuvwxyz';
+            const numberChars = '0123456789';
+            const symbolChars = '!@#$%^&*()_+-=[]{}|;:,.<>?';
+
+            let chars = '';
+            if (useUpper) chars += upperChars;
+            if (useLower) chars += lowerChars;
+            if (useNumbers) chars += numberChars;
+            if (useSymbols) chars += symbolChars;
+
+            if (chars === '') {
+                alert('请至少选择一种字符类型');
+                return;
+            }
+
+            let password = '';
+            for (let i = 0; i < length; i++) {
+                password += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+
+            document.getElementById('pwdResult').innerHTML = `
+                <div style="font-family: 'Courier New', monospace; font-size: 1.3rem; word-break: break-all;">${password}</div>
+                <button class="btn btn-secondary" onclick="copyText('${password.replace(/'/g, "\\'")}')" style="margin-top: 10px;">复制密码</button>
+            `;
+            addToHistory('密码', password);
+        }
+
+        // 抛硬币
+        function flipCoin() {
+            const container = document.getElementById('coinContainer');
+            const resultDiv = document.getElementById('coinResult');
+
+            // 防止重复点击
+            if (container.classList.contains('flipping')) return;
+
+            container.classList.add('flipping');
+            resultDiv.innerHTML = '<span style="color: #999;">抛掷中...</span>';
+
+            setTimeout(() => {
+                const isHeads = Math.random() < 0.5;
+                const result = isHeads ? '正面' : '反面';
+                const emoji = isHeads ? '🌕' : '🌑';
+
+                container.innerHTML = `
+                    <div class="coin ${isHeads ? 'coin-heads' : 'coin-tails'}" id="coin">
+                        ${emoji}
+                    </div>
+                `;
+
+                resultDiv.innerHTML = `<div class="result-list" style="font-size: 1.5rem;">${emoji} ${result}</div>`;
+                addToHistory('抛硬币', result);
+                container.classList.remove('flipping');
+            }, 1000);
+        }
+
+        // 掷骰子
+        function rollDice() {
+            const count = parseInt(document.getElementById('diceCount').value) || 2;
+            const container = document.getElementById('diceContainer');
+            const resultDiv = document.getElementById('diceResult');
+
+            // 清除旧的骰子
+            container.innerHTML = '';
+
+            // 创建新的骰子
+            for (let i = 0; i < count; i++) {
+                const dice = document.createElement('div');
+                dice.className = 'dice rolling';
+                dice.id = `dice${i}`;
+                dice.innerHTML = '<div class="dice-dot" style="grid-area: 2 / 2;"></div>';
+                container.appendChild(dice);
+            }
+
+            resultDiv.innerHTML = '<span style="color: #999;">掷骰子中...</span>';
+
+            setTimeout(() => {
+                let total = 0;
+                const results = [];
+
+                for (let i = 0; i < count; i++) {
+                    const value = Math.floor(Math.random() * 6) + 1;
+                    results.push(value);
+                    total += value;
+                    updateDiceDisplay(i, value);
+                }
+
+                const resultText = `结果: ${results.join(', ')} = ${total}`;
+                resultDiv.innerHTML = `<div class="result-list">${resultText}</div>`;
+                addToHistory('掷骰子', resultText);
+            }, 500);
+        }
+
+        function updateDiceDisplay(index, value) {
+            const dice = document.getElementById(`dice${index}`);
+            dice.classList.remove('rolling');
+
+            // 骰子点数布局
+            const dotPatterns = {
+                1: [[2, 2]],
+                2: [[1, 1], [3, 3]],
+                3: [[1, 1], [2, 2], [3, 3]],
+                4: [[1, 1], [1, 3], [3, 1], [3, 3]],
+                5: [[1, 1], [1, 3], [2, 2], [3, 1], [3, 3]],
+                6: [[1, 1], [1, 3], [2, 1], [2, 3], [3, 1], [3, 3]]
+            };
+
+            const dots = dotPatterns[value];
+            dice.innerHTML = dots.map(([row, col]) =>
+                `<div class="dice-dot" style="grid-area: ${row} / ${col};"></div>`
+            ).join('');
+        }
+
+        // 随机颜色生成器
+        function generateRandomColor() {
+            const r = Math.floor(Math.random() * 256);
+            const g = Math.floor(Math.random() * 256);
+            const b = Math.floor(Math.random() * 256);
+
+            const hex = '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('');
+            const rgb = `${r}, ${g}, ${b}`;
+
+            document.getElementById('colorPreview').style.background = hex;
+            document.getElementById('colorValue').value = hex;
+            document.getElementById('rgbValue').textContent = rgb;
+
+            addToHistory('颜色', hex);
+        }
+
+        function copyColor() {
+            const color = document.getElementById('colorValue').value;
+            copyText(color);
+        }
+
+        // 从列表中随机选择
+        function pickFromList() {
+            const input = document.getElementById('listInput').value.trim();
+            const count = parseInt(document.getElementById('selectCount').value) || 1;
+            const removeAfterPick = document.getElementById('removeAfterPick').checked;
+
+            if (!input) {
+                alert('请输入选项');
+                return;
+            }
+
+            let items = input.split('\n').map(s => s.trim()).filter(s => s);
+
+            if (items.length === 0) {
+                alert('请输入有效的选项');
+                return;
+            }
+
+            if (count > items.length) {
+                alert('选择数量不能大于选项数量');
+                return;
+            }
+
+            // 使用洗牌算法
+            for (let i = items.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [items[i], items[j]] = [items[j], items[i]];
+            }
+
+            const selected = items.slice(0, count);
+
+            if (removeAfterPick) {
+                const remaining = items.slice(count);
+                document.getElementById('listInput').value = remaining.join('\n');
+            }
+
+            const resultText = selected.join(', ');
+            document.getElementById('listResult').innerHTML = `
+                <div class="result-list" style="color: #667eea; font-weight: bold;">${resultText}</div>
+            `;
+            addToHistory('列表选择', resultText);
+        }
+
+        // 初始化骰子显示
+        window.onload = function() {
+            rollDice();
+        };
+    </script>
+</body>
+</html>
